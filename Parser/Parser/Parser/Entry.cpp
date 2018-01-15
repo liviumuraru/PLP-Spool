@@ -23,6 +23,14 @@ enum Symbol : uint32_t
 	T_end,
 	T_entry,
 
+	T_self,
+	T_as,
+	T_inherit,
+	T_dot,
+	T_return,
+	T_subtype,
+	T_cast,
+
 	T_if,
 	T_then,
 	T_else,
@@ -117,6 +125,21 @@ std::string ToString(Symbol sym)
 		return "T_number";
 
 
+
+	case T_self:
+		return "T_self";
+	case T_as:
+		return "T_as";
+	case T_inherit:
+		return "T_inherit";
+	case T_dot:
+		return "T_dot";
+	case T_subtype:
+		return "T_subtype";
+	case T_cast:
+		return "T_cast";
+
+
 	case T_logical_and:
 		return "T_logical_and";
 	case T_logical_not:
@@ -180,6 +203,10 @@ std::string ToString(Symbol sym)
 		return "T_do";
 	case T_endloop:
 		return "T_endloop";
+
+	
+	case T_return:
+		return "T_return";
 
 	
 	case N_numeric_expression:
@@ -254,6 +281,20 @@ Symbol ToSymbol(std::pair<std::string, std::string> match)
 		return Symbol::T_type;
 
 
+	if (match.second == "T_as")
+		return Symbol::T_as;
+	if (match.second == "T_inherit")
+		return Symbol::T_inherit;
+	if (match.second == "T_self")
+		return Symbol::T_self;
+	if (match.second == "T_dot")
+		return Symbol::T_dot;
+	if (match.second == "T_subtype")
+		return Symbol::T_subtype;
+	if (match.second == "T_cast")
+		return Symbol::T_cast;
+
+
 	if (match.second == "T_logical_and")
 		return T_logical_and;
 	if (match.second == "T_logical_or")
@@ -320,6 +361,10 @@ Symbol ToSymbol(std::pair<std::string, std::string> match)
 		return Symbol::T_else;
 	if (match.second == "T_endif")
 		return Symbol::T_endif;
+
+
+	if (match.second == "T_return")
+		return Symbol::T_return;
 
 
 	if (match.second == "T_while")
@@ -485,11 +530,13 @@ std::map<Symbol, std::map<Symbol, uint32_t>> BuildParsingTable()
 	ParsingTable[Symbol::N_factor][Symbol::T_number] = 10;
 
 	ParsingTable[Symbol::N_statement_list][T_number] = 13;
+	ParsingTable[Symbol::N_statement_list][T_return] = 13;
 	ParsingTable[Symbol::N_statement_list][T_name] = 13;
 	ParsingTable[Symbol::N_statement_list][T_hash] = 14;
 	ParsingTable[Symbol::N_statement_list][T_end] = 14;
 	ParsingTable[Symbol::N_statement_list][T_var] = 13;
 	ParsingTable[Symbol::N_statement_list][T_type] = 13;
+	ParsingTable[Symbol::N_statement_list][T_subtype] = 13;
 	ParsingTable[Symbol::N_statement_list][T_fn] = 13;
 	ParsingTable[Symbol::N_statement_list][T_call] = 13;
 	ParsingTable[Symbol::N_statement_list][T_entry] = 28;
@@ -497,23 +544,31 @@ std::map<Symbol, std::map<Symbol, uint32_t>> BuildParsingTable()
 	ParsingTable[Symbol::N_statement_list][T_while] = 13;
 	ParsingTable[Symbol::N_statement_list][T_endif] = 14;
 	ParsingTable[Symbol::N_statement_list][T_endloop] = 14;
-	ParsingTable[N_statement_list][T_else] = 38;
+	ParsingTable[Symbol::N_statement_list][T_else] = 38;
+	ParsingTable[Symbol::N_statement_list][T_self] = 13;
+	ParsingTable[Symbol::N_statement_list][T_cast] = 13;
 
 	ParsingTable[Symbol::N_statement][T_number] = 12;
+	ParsingTable[Symbol::N_statement][T_return] = 12;
 	ParsingTable[Symbol::N_statement][T_name] = 15;
 	ParsingTable[Symbol::N_statement][T_var] = 16;
 	ParsingTable[Symbol::N_statement][T_type] = 16;
+	ParsingTable[Symbol::N_statement][T_subtype] = 16;
 	ParsingTable[Symbol::N_statement][T_fn] = 16;
 	ParsingTable[Symbol::N_statement][T_call] = 12;
 	ParsingTable[Symbol::N_statement][T_if] = 12;
 	ParsingTable[Symbol::N_statement][T_while] = 12;
+	ParsingTable[Symbol::N_statement][T_self] = 12;
+	ParsingTable[Symbol::N_statement][T_cast] = 12;
 
 	ParsingTable[Symbol::N_declaration][T_var] = 17;
 	ParsingTable[Symbol::N_declaration][T_type] = 19;
+	ParsingTable[Symbol::N_declaration][T_subtype] = 19;
 	ParsingTable[Symbol::N_declaration][T_fn] = 18;
 
 	ParsingTable[Symbol::N_var_declaration][T_var] = 20;
 	ParsingTable[Symbol::N_type_declaration][T_type] = 21;
+	ParsingTable[Symbol::N_type_declaration][T_subtype] = 52;
 	ParsingTable[Symbol::N_fn_declaration][T_fn] = 22;
 
 	ParsingTable[Symbol::N_param_declaration][T_var] = 27;
@@ -523,10 +578,14 @@ std::map<Symbol, std::map<Symbol, uint32_t>> BuildParsingTable()
 	ParsingTable[Symbol::N_param_declaration_list_helper][T_l_parens] = 26;
 
 	ParsingTable[Symbol::N_expression][T_number] = 11;
+	ParsingTable[Symbol::N_expression][T_return] = 55;
 	ParsingTable[Symbol::N_expression][T_call] = 29;
 	ParsingTable[Symbol::N_expression][T_if] = 35;
 	ParsingTable[Symbol::N_expression][T_while] = 35;
 	ParsingTable[Symbol::N_expression][T_name] = 49;
+	ParsingTable[Symbol::N_expression][T_self] = 54;
+	ParsingTable[Symbol::N_expression][T_dot] = 51;
+	ParsingTable[Symbol::N_expression][T_cast] = 53;
 
 	ParsingTable[Symbol::N_expression_list][T_l_parens] = 30;
 	ParsingTable[Symbol::N_expression_list][T_number] = 31;
@@ -569,19 +628,16 @@ int main(int argc, char** argv)
 		{ "fn", "T_fn" },
 		{ "call", "T_call"},
 		{ "var", "T_var" },
-		{ "ref", "T_ref" },
-		{ "overridden", "T_override" },
-		{ "final", "T_final" },
-		{ "class", "T_class" },
-		{ "subclass", "T_subclass" },
-		{ "interface", "T_interface" },
-		{ "implements", "T_implements" },
-		{ "of", "T_of" },
+
 		{ "entry", "T_entry" },
+
 		{ "create", "T_create" },
 		{ "self", "T_self" },
 		{ "as", "T_as" },
+		{ "cast", "T_cast" },
+
 		{ "type", "T_type" },
+		{ "subtype", "T_subtype"},
 		{ "begin", "T_begin"},
 
 		{ "&&", "T_logical_and"},
@@ -607,13 +663,17 @@ int main(int argc, char** argv)
 		{ "if", "T_if" },
 		{ "then", "T_then" },
 		{ "else", "T_else" },
+		
 
 		
 		{ "[_a-zA-Z][_a-zA-Z]*[0-9]*[_a-zA-Z]*" , "T_name" },
-		{ "[1-9][0-9]+", "T_number" },
 		{ "[0-9]\\.[0-9]+", "T_number" },
 		{ "[1-9][0-9]*\\.[0-9]*", "T_number" },
+		{ "[1-9][0-9]+", "T_number" },
+		
 		{ "[0-9]", "T_number" },
+
+		{ "\\.", "T_dot" },
 
 		{ "bitfield", "T_bitfield" },
 		{ "string", "T_string" },
@@ -803,6 +863,9 @@ int main(int argc, char** argv)
 	}
 
 	printf("\nThe program is syntactically correct.\n\n");
+
+	int a;
+	std::cin >> a;
 
 	return 0;
 }

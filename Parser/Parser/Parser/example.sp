@@ -13,7 +13,10 @@ var int my_int;
 fn int my_function(var int i , var float f)
 	begin
 
+		var float my_inside_fn_float;
+		my_inside_fn_float = 10.2;
 		var int my_inside_fn_int;
+		self.my_int = 100;
 
 	end;
 
@@ -22,6 +25,11 @@ fn float my_function_noParam()
 		var float my_inside_fn_float;
 	end;
 
+end;
+
+subtype my_subtype inherit my_type
+begin
+	var int my_int;
 end;
 
 var int my_other_int;
@@ -34,6 +42,8 @@ fn my_type mytype_function()
 fn my_type mytype_with_params(var int a, var float f)
 	begin
 		var float ok;
+		var my_type temp;
+		return temp;
 	end;
 
 entry
@@ -66,5 +76,8 @@ entry
 	endloop;
 
 	my_int_main = 1;
+
+	var my_subtype my_subtyped_object;
+	cast my_subtyped_object as my_type.my_int = 10;
 
 end
